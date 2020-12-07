@@ -70,6 +70,7 @@ class BodyBuilder extends WireData implements Module
             $field->modes = ["php", "html", "twig", "css", "javascript"];
             $field->rows = 40;
             $field->label = "Code";
+            $field->addFlag(Field::flagSystem);
             $field->name = self::codeField;
             $field->collapsed = Inputfield::collapsedNever;
             $field->save();
