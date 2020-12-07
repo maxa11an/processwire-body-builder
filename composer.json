@@ -4,6 +4,7 @@
   "homepage": "https://github.com/maxa11an/processwire-body-builder",
   "type": "pw-module",
   "license": "GNU GPL v2",
+  "minimum-stability": "dev",
   "authors": [
     {
       "name": "Max Allan Niklasson",
@@ -12,12 +13,14 @@
   ],
   "repositories": [
     {
-      "type": "vcs",
-      "url": "https://github.com/maxa11an/processwire-inputfield-ace-extended.git"
+      "type": "path",
+      "url": "../processwire-inputfield-ace-extended"
     }
   ],
   "require": {
-    "twig/twig": "^3.1",
+    "twig/twig": "^3.1"
+  },
+  "require-dev": {
     "maxa11an/processwire-inputfield-ace-extended": "*"
   }
 }

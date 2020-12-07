@@ -1,0 +1,175 @@
+<?php
+
+
+namespace ProcessWire;
+
+
+class MarkupBodyBuilder extends Wire implements Module
+{
+    
+    /** @var \Twig\Environment $twig */
+    private $twig;
+
+    public static function getModuleInfo()
+    {
+        return array(
+            'title' => 'Body Builder (Markup)',
+            'summary' => 'A builder for a more adjustable yet clear outputting of body elements',
+            'version' => 1,
+            'requires' => ['InputfieldAceExtended', 'FieldtypeRepeater', 'BodyBuilder', 'ProcessBodyBuilder'],
+            'permission' => 'template-admin',
+            'autoload' => true,
+        );
+    }
+
+    public function init()
+    {
+        include_once __DIR__ . "vendor/autoload.php";
+        include_once __DIR__ ."BodyBuilder.module";
+
+        $this->addHookAfter("Fields::save", $this, 'hookWhenFieldSaved');
+        $this->addHookAfter("Field::getInputfield", $this, 'hookHideTitle');
+        $this->addHookAfter('Page::renderField', $this, 'hookRenderField');
+
+        $this->twig = new \Twig\Environment(new \Twig\Loader\ArrayLoader(), [
+            'autoescape' => false,
+            'debug' => $this->config->debug
+        ]);
+        $this->twig->addExtension(new \Twig\Extension\DebugExtension());
+        return parent::init();
+    }
+
+    public function hookRenderField(HookEvent $event)
+    {
+        /** @var Page $page */
+        $page = $event->object;
+        if (!$page->hasField(BodyBuilder::modularName)) return;
+        $page->of(false);
+        $event->return = $this->renderValue($page, BodyBuilder::modularName, $page);
+    }
+
+
+
+    public function hookHideTitle(HookEvent $event) {
+        if ($this->page->process !== 'ProcessPageEdit') return;
+        /** @var Field $field */
+        $field = $event->object;
+        /** @var Inputfield $inputfield */
+        $inputfield = $event->return;
+        $page = $event->arguments(0);
+        if ($page->template == BodyBuilder::modularName && $field->name == 'title') {
+            $inputfield->collapsed = Inputfield::collapsedHidden;
+        }
+    }
+
+    public function hookWhenFieldSaved(HookEvent $event)
+    {
+        /** @var RepeaterField $field */
+        $field = $event->arguments(0);
+
+        if ($field->name === BodyBuilder::modularName) {
+            $rootPage = $this->pages->get($this->config->adminRootPageID)->child('name=setup')->child('name=' . BodyBuilder::modularName);
+            $template = $this->templates->get('repeater_' . BodyBuilder::modularName);
+
+            //Simple we just check if it exists a page for each field below Body Builder, if not create one
+
+            foreach ($field->repeaterFields as $repeaterField) {
+                /** @var Field $fieldSource */
+                $fieldSource = $this->wire('fields')->get($repeaterField);
+                if ($fieldSource instanceof Field && $fieldSource->name !== BodyBuilder::modularName . '_type') {
+                    $templatePage = $this->wire('pages')->get("parent=$rootPage,name=for-body-builder-{$fieldSource->id}");
+                    if ($templatePage instanceof NullPage) {
+                        $templatePage = new Page();
+                        $templatePage->name = "for-body-builder-{$fieldSource->id}";
+                        $templatePage->parent = $rootPage;
+                        $templatePage->template = BodyBuilder::modularName;
+                        $templatePage->title = $fieldSource->label ?? "Template for {$fieldSource->name}";
+                        $templatePage->save();
+                    }
+                    $template->fieldgroup->setFieldContextArray($fieldSource->id, ['showIf' => BodyBuilder::modularName . "_type={$templatePage->id}", 'collapsed' => Inputfield::collapsedNever]);
+                    $template->fieldgroup->saveContext();
+                }
+            }
+
+        }
+
+    }
+
+    /**
+     * @param Page|null $page
+     * @param String|null $fieldName
+     * @return string
+     * @return array
+     * @throws \Twig\Error\LoaderError
+     * @throws \Twig\Error\SyntaxError
+     */
+    private function renderValue($page = null, String $fieldName = null)
+    {
+        if ($page === null && $fieldName === null) return "";
+        $returnOutput = [];
+        $pageFieldValue = $page->get($fieldName);
+        if ($pageFieldValue != null && is_object($pageFieldValue)) {
+            //This is only for process body builder repeaters.
+            if ($pageFieldValue instanceof RepeaterPageArray && $fieldName == BodyBuilder::modularName) {
+                foreach ($pageFieldValue as $item) {
+                    /** @var Page $item */
+                    $returnAsHTML = false;
+                    $templateString = null;
+                    //Get the template page
+                    $templatePage = $item->get(BodyBuilder::modularName . '_type');
+                    $fieldId = (int)str_replace('for-body-builder-', '', $templatePage->name);
+                    $field = $item->getField($fieldId);
+
+                    if (!($templatePage instanceof NullPage)) {
+                        $templateString = $templatePage->get('process_body_builder_code');
+                        if (!empty($templateString)) $returnAsHTML = true;
+                    }
+                    if ($this->config->debug && $returnAsHTML) {
+                        $templateString = '<!-- BODY BUILDER TEMPLATE START ' . $field->name . ' -->' .
+                            '<!-- {{ dump(field) }} -->' .
+                            "\n\n$templateString\n\n" .
+                            '<!-- ' . $field->name . ' END -->';
+                    }
+
+                    $returnOutput[] = $this->twig->createTemplate($templateString)->render([
+                        "field" => $this->renderValue($item, $field->name)
+                    ]);
+                }
+                return "\n" . join("\n\n", $returnOutput);
+            }
+            if ($pageFieldValue instanceof RepeaterPageArray && $fieldName !== BodyBuilder::modularName) {
+                foreach ($pageFieldValue as $item) {
+                    foreach($item->template->fieldgroup as $field){
+                        $returnOutput[$field->name] = $this->renderValue($item, $field->name);
+                    }
+                }
+                return $returnOutput;
+            }
+
+            if ($page instanceof RepeaterPage && strpos($page->name, FieldtypeRepeater::repeaterPageNamePrefix) === false) {
+                $repeaterField = $page->template->fieldgroup->get($fieldName);
+                $repPage = $page->get($fieldName);
+                foreach ($repeaterField->repeaterFields as $fieldId) {
+                    $field = $this->fields->get($fieldId);
+                    $returnOutput[$field->name] = $this->renderValue($repPage, $field->name);
+                }
+                return $returnOutput;
+            }
+
+            if ($page instanceof RepeaterPage && strpos($page->name, FieldtypeRepeater::repeaterPageNamePrefix) !== false) {
+                $f = $page->getField($fieldName);
+                $ft = $f->getFieldtype();
+
+                if ($ft->hasHook('formatValue')) {
+                    return $ft->runHooks('formatValue', $page, $f, $page->get($fieldName));
+                }
+                return $page->get($fieldName);
+            }
+
+            return $page->get($fieldName);
+        } else {
+            return $pageFieldValue;
+        }
+    }
+
+}
