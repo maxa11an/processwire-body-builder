@@ -27,7 +27,8 @@ class MarkupBodyBuilder extends Process implements Module
             'title' => 'Body Builder (Markup)',
             'summary' => 'A builder for a more adjustable yet clear outputting of body elements',
             'version' => 1,
-            'requires' => [ 'FieldtypeRepeater', 'BodyBuilder'],
+            'requires' => ['FieldtypeRepeater', 'BodyBuilder'],
+            'autoload' => true
         );
     }
 
@@ -153,7 +154,7 @@ class MarkupBodyBuilder extends Process implements Module
 
         if ($field->name === BodyBuilder::repeaterName) {
             $rootPage = $this->pages->get($this->config->adminRootPageID)->child('name=setup')->child('name=' . BodyBuilder::codeTemplate);
-            $template = $this->templates->get('repeater_' . BodyBuilder::modularName);
+            $template = $this->templates->get('repeater_' . BodyBuilder::repeaterName);
 
             //Simple we just check if it exists a page for each field below Body Builder, if not create one
 

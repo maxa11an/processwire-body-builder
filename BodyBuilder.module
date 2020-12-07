@@ -31,7 +31,7 @@ class BodyBuilder extends WireData implements Module
             'requires' => ['InputfieldAceExtended', 'FieldtypeRepeater'],
             'installs' => ['InputfieldAceExtended', 'FieldtypeRepeater', 'ProcessBodyBuilder', 'MarkupBodyBuilder'],
             'permission' => 'template-admin',
-            'autoload' => false,
+            'autoload' => true,
         );
     }
 
@@ -45,7 +45,7 @@ class BodyBuilder extends WireData implements Module
             $p->template = $this->templates->get("admin");
             $p->name = self::moduleName;
             $p->parent = $setupPage;
-            $p->process = $this;
+            $p->process = $this->modules('ProcessBodyBuilder');
             $p->title = 'Body Builder Templates';
             $p->save();
 
