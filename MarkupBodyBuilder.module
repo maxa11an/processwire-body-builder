@@ -43,9 +43,9 @@ class MarkupBodyBuilder extends Wire implements Module
     {
         /** @var Page $page */
         $page = $event->object;
-        if (!$page->hasField(BodyBuilder::modularName)) return;
+        if (!$page->hasField(BodyBuilder::codeTemplate)) return;
         $page->of(false);
-        $event->return = $this->renderValue($page, BodyBuilder::modularName, $page);
+        $event->return = $this->renderValue($page, BodyBuilder::codeTemplate, $page);
     }
 
 
@@ -57,7 +57,7 @@ class MarkupBodyBuilder extends Wire implements Module
         /** @var Inputfield $inputfield */
         $inputfield = $event->return;
         $page = $event->arguments(0);
-        if ($page->template == BodyBuilder::modularName && $field->name == 'title') {
+        if ($page->template == BodyBuilder::codeTemplate && $field->name == 'title') {
             $inputfield->collapsed = Inputfield::collapsedHidden;
         }
     }
@@ -67,8 +67,8 @@ class MarkupBodyBuilder extends Wire implements Module
         /** @var RepeaterField $field */
         $field = $event->arguments(0);
 
-        if ($field->name === BodyBuilder::modularName) {
-            $rootPage = $this->pages->get($this->config->adminRootPageID)->child('name=setup')->child('name=' . BodyBuilder::modularName);
+        if ($field->name === BodyBuilder::repeaterName) {
+            $rootPage = $this->pages->get($this->config->adminRootPageID)->child('name=setup')->child('name=' . BodyBuilder::codeTemplate);
             $template = $this->templates->get('repeater_' . BodyBuilder::modularName);
 
             //Simple we just check if it exists a page for each field below Body Builder, if not create one
@@ -76,17 +76,17 @@ class MarkupBodyBuilder extends Wire implements Module
             foreach ($field->repeaterFields as $repeaterField) {
                 /** @var Field $fieldSource */
                 $fieldSource = $this->wire('fields')->get($repeaterField);
-                if ($fieldSource instanceof Field && $fieldSource->name !== BodyBuilder::modularName . '_type') {
+                if ($fieldSource instanceof Field && $fieldSource->name !== BodyBuilder::typeField) {
                     $templatePage = $this->wire('pages')->get("parent=$rootPage,name=for-body-builder-{$fieldSource->id}");
                     if ($templatePage instanceof NullPage) {
                         $templatePage = new Page();
                         $templatePage->name = "for-body-builder-{$fieldSource->id}";
                         $templatePage->parent = $rootPage;
-                        $templatePage->template = BodyBuilder::modularName;
+                        $templatePage->template = BodyBuilder::codeTemplate;
                         $templatePage->title = $fieldSource->label ?? "Template for {$fieldSource->name}";
                         $templatePage->save();
                     }
-                    $template->fieldgroup->setFieldContextArray($fieldSource->id, ['showIf' => BodyBuilder::modularName . "_type={$templatePage->id}", 'collapsed' => Inputfield::collapsedNever]);
+                    $template->fieldgroup->setFieldContextArray($fieldSource->id, ['showIf' => BodyBuilder::typeField . "={$templatePage->id}", 'collapsed' => Inputfield::collapsedNever]);
                     $template->fieldgroup->saveContext();
                 }
             }
@@ -110,13 +110,13 @@ class MarkupBodyBuilder extends Wire implements Module
         $pageFieldValue = $page->get($fieldName);
         if ($pageFieldValue != null && is_object($pageFieldValue)) {
             //This is only for process body builder repeaters.
-            if ($pageFieldValue instanceof RepeaterPageArray && $fieldName == BodyBuilder::modularName) {
+            if ($pageFieldValue instanceof RepeaterPageArray && $fieldName == BodyBuilder::repeaterName) {
                 foreach ($pageFieldValue as $item) {
                     /** @var Page $item */
                     $returnAsHTML = false;
                     $templateString = null;
                     //Get the template page
-                    $templatePage = $item->get(BodyBuilder::modularName . '_type');
+                    $templatePage = $item->get(BodyBuilder::typeField);
                     $fieldId = (int)str_replace('for-body-builder-', '', $templatePage->name);
                     $field = $item->getField($fieldId);
 
@@ -137,7 +137,7 @@ class MarkupBodyBuilder extends Wire implements Module
                 }
                 return "\n" . join("\n\n", $returnOutput);
             }
-            if ($pageFieldValue instanceof RepeaterPageArray && $fieldName !== BodyBuilder::modularName) {
+            if ($pageFieldValue instanceof RepeaterPageArray && $fieldName !== BodyBuilder::repeaterName) {
                 foreach ($pageFieldValue as $item) {
                     foreach($item->template->fieldgroup as $field){
                         $returnOutput[$field->name] = $this->renderValue($item, $field->name);
@@ -171,5 +171,7 @@ class MarkupBodyBuilder extends Wire implements Module
             return $pageFieldValue;
         }
     }
+
+
 
 }
