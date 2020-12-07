@@ -5,8 +5,6 @@ namespace ProcessWire;
 
 use Exception;
 
-include_once "MarkupBodyBuilder.module";
-include_once "ProcessBodyBuilder.module";
 
 class BodyBuilder extends WireData implements Module
 {
@@ -14,6 +12,7 @@ class BodyBuilder extends WireData implements Module
 
     const codeField = "process_body_builder_code";
     const codeTemplate = "process_body_builder";
+    const codePageName = "for-body-builder-";
 
 
     const typeField = "process_body_builder_type";
@@ -30,7 +29,7 @@ class BodyBuilder extends WireData implements Module
             'summary' => 'A builder for a more adjustable yet clear outputting of body elements',
             'version' => 1,
             'requires' => ['InputfieldAceExtended', 'FieldtypeRepeater'],
-            'installs' => ['InputfieldAceExtended', 'FieldtypeRepeater'],
+            'installs' => ['InputfieldAceExtended', 'FieldtypeRepeater', 'ProcessBodyBuilder', 'MarkupBodyBuilder'],
             'permission' => 'template-admin',
             'autoload' => false,
         );

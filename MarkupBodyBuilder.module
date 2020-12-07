@@ -10,8 +10,13 @@ use Twig\Loader\ArrayLoader;
 
 
 
-class MarkupBodyBuilder extends Wire implements Module
+class MarkupBodyBuilder extends Process implements Module
 {
+
+    public function __construct()
+    {
+        include_once __DIR__ . "/vendor/autoload.php";
+    }
 
     /** @var Environment $twig */
     private $twig;
@@ -22,17 +27,14 @@ class MarkupBodyBuilder extends Wire implements Module
             'title' => 'Body Builder (Markup)',
             'summary' => 'A builder for a more adjustable yet clear outputting of body elements',
             'version' => 1,
-            'requires' => ['InputfieldAceExtended', 'FieldtypeRepeater', 'BodyBuilder', 'ProcessBodyBuilder'],
-            'autoload' => true,
-            'singular' => true
+            'requires' => [ 'FieldtypeRepeater', 'BodyBuilder'],
         );
     }
 
     public function init()
     {
-        include_once __DIR__ . "/vendor/autoload.php";
-        include_once __DIR__ . "/BodyBuilder.module";
-        
+
+
         $this->addHookAfter("Fields::save", $this, 'hookWhenFieldSaved');
         $this->addHookAfter("Field::getInputfield", $this, 'hookHideTitle');
         $this->addHookAfter('Page::renderField', $this, 'hookRenderField');
@@ -76,7 +78,7 @@ class MarkupBodyBuilder extends Wire implements Module
                     $templateString = null;
                     //Get the template page
                     $templatePage = $item->get(BodyBuilder::typeField);
-                    $fieldId = (int)str_replace('for-body-builder-', '', $templatePage->name);
+                    $fieldId = (int)str_replace(BodyBuilder::codePageName, '', $templatePage->name);
                     $field = $item->getField($fieldId);
 
                     if (!($templatePage instanceof NullPage)) {
@@ -159,10 +161,10 @@ class MarkupBodyBuilder extends Wire implements Module
                 /** @var Field $fieldSource */
                 $fieldSource = $this->wire('fields')->get($repeaterField);
                 if ($fieldSource instanceof Field && $fieldSource->name !== BodyBuilder::typeField) {
-                    $templatePage = $this->wire('pages')->get("parent=$rootPage,name=for-body-builder-{$fieldSource->id}");
+                    $templatePage = $this->wire('pages')->get("parent=$rootPage,name=".BodyBuilder::codePageName."{$fieldSource->id}");
                     if ($templatePage instanceof NullPage) {
                         $templatePage = new Page();
-                        $templatePage->name = "for-body-builder-{$fieldSource->id}";
+                        $templatePage->name = BodyBuilder::codePageName.$fieldSource->id;
                         $templatePage->parent = $rootPage;
                         $templatePage->template = BodyBuilder::codeTemplate;
                         $templatePage->title = $fieldSource->label ?? "Template for {$fieldSource->name}";
@@ -176,6 +178,4 @@ class MarkupBodyBuilder extends Wire implements Module
         }
 
     }
-
-
 }
