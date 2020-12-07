@@ -1,7 +1,6 @@
 <?php namespace ProcessWire;
 
 
-
 class ProcessBodyBuilder extends ProcessPageType
 {
 
@@ -20,8 +19,8 @@ class ProcessBodyBuilder extends ProcessPageType
 
     public function init()
     {
-        include_once __DIR__ ."BodyBuilder.module";
-        
+        include_once __DIR__ . "/BodyBuilder.module";
+
         $process = $this->wire('process');
         if ("$process" === "$this") {
             $this->headline($this->moduleInfo['page']['title']);
@@ -62,16 +61,17 @@ class ProcessBodyBuilder extends ProcessPageType
      * @return MarkupAdminDataTable
      *
      */
-    public function ___getListTable($templates) {
+    public function ___getListTable($templates)
+    {
 
         /** @var MarkupAdminDataTable $table */
         $table = $this->modules->get("MarkupAdminDataTable");
         $table->setEncodeEntities(false);
         $useLabels = false;
 
-        foreach($templates as $template) {
+        foreach ($templates as $template) {
             $label = $template->getLabel();
-            if($label && $label != $template->name) {
+            if ($label && $label != $template->name) {
                 $useLabels = true;
                 break;
             }
@@ -80,9 +80,9 @@ class ProcessBodyBuilder extends ProcessPageType
         $fieldRootPage = $this->wire('pages')->get('name=field');
 
         $rows = array();
-        foreach($this->wire('pages')->find('template='.BodyBuilder::codeTemplate) as $template) {
+        foreach ($this->wire('pages')->find('template=' . BodyBuilder::codeTemplate) as $template) {
             $row = $this->getListTableRow($template, $fieldRootPage);
-            if(!empty($row)) $rows[] = $row;
+            if (!empty($row)) $rows[] = $row;
         }
 
         $header = array();
@@ -91,7 +91,7 @@ class ProcessBodyBuilder extends ProcessPageType
         $header[] = $this->_x('Modified', 'list-thead');
         $table->headerRow($header);
 
-        foreach($rows as $row) $table->row($row);
+        foreach ($rows as $row) $table->row($row);
 
         return $table;
     }
@@ -104,16 +104,17 @@ class ProcessBodyBuilder extends ProcessPageType
      * @return array
      *
      */
-    public function ___getListTableRow(Page $template, Page $fieldRootPage) {
+    public function ___getListTableRow(Page $template, Page $fieldRootPage)
+    {
 
         $field = $this->wire('fields')->get(str_replace('for-body-builder-', '', $template->name));
 
 
-        if($template->useRoles) $flags[] = 'access';
-        if($template->cache_time > 0) $flags[] = 'cache';
-        else if($template->cache_time < 0) $flags[] = 'procache';
-        if($template->urlSegments) $flags[] = 'url-segments';
-        if($template->allowPageNum) $flags[] = 'page-numbers';
+        if ($template->useRoles) $flags[] = 'access';
+        if ($template->cache_time > 0) $flags[] = 'cache';
+        else if ($template->cache_time < 0) $flags[] = 'procache';
+        if ($template->urlSegments) $flags[] = 'url-segments';
+        if ($template->allowPageNum) $flags[] = 'page-numbers';
 
         $row = array();
         $row["{$template->title} "] = "edit?id={$template->id}";
@@ -126,8 +127,9 @@ class ProcessBodyBuilder extends ProcessPageType
         return $row;
     }
 
-    public function ___execute() {
-        if($this->wire('config')->ajax) return $this->renderListJSON();
+    public function ___execute()
+    {
+        if ($this->wire('config')->ajax) return $this->renderListJSON();
 
         $out = $this->getListTable($this->templates)->render();
 
@@ -144,8 +146,7 @@ class ProcessBodyBuilder extends ProcessPageType
         $out .= $button->render();
 
 
-
-        if($this->input->get('nosave')) {
+        if ($this->input->get('nosave')) {
             $this->session->removeFor($this, 'filterSystem');
             $this->session->removeFor($this, 'filterField');
         }
@@ -153,19 +154,20 @@ class ProcessBodyBuilder extends ProcessPageType
         return $out;
     }
 
-    public function ___executeEdit(){
+    public function ___executeEdit()
+    {
         $name = $this->input->get('id');
-        if($name === "template"){
+        if ($name === "template") {
             $_GET['id'] = wire('templates')->get(BodyBuilder::codeTemplate)->id;
             $templateProcess = new ProcessTemplate();
-            $templateProcess->addHookAfter('buildEditForm', function (HookEvent $hookEvent){
+            $templateProcess->addHookAfter('buildEditForm', function (HookEvent $hookEvent) {
                 $obj = $hookEvent->return;
                 $obj->attr('action', '../save/template');
                 $hookEvent->return = $obj;
             });
             $templateProcess->init();
             return $templateProcess->___executeEdit();
-        }else{
+        } else {
             $processPageEdit = new ProcessPageEdit();
             $processPageEdit->init();
 
@@ -174,25 +176,22 @@ class ProcessBodyBuilder extends ProcessPageType
         return $name;
     }
 
-    public function ___executeSave(){
+    public function ___executeSave()
+    {
         $name = $this->wire('input')->urlSegment2;
-        if($name === "edit" && isset($_GET['id'])){
+        if ($name === "edit" && isset($_GET['id'])) {
             $t = $this->templates->get($_GET['id']);
-            if($t instanceof Template && $t->name === BodyBuilder::codeTemplate){
+            if ($t instanceof Template && $t->name === BodyBuilder::codeTemplate) {
                 $this->session->redirect('../edit/template');
             }
         }
-        if($name === "template"){
+        if ($name === "template") {
             $_GET['id'] = wire('templates')->get(BodyBuilder::codeTemplate)->id;
             $templateProcess = new ProcessTemplate();
             $templateProcess->init();
             return $templateProcess->___executeSave();
         }
     }
-
-
-
-
 
 
 }

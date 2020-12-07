@@ -3,6 +3,8 @@
 
 namespace ProcessWire;
 
+use Exception;
+
 include_once "MarkupBodyBuilder.module";
 include_once "ProcessBodyBuilder.module";
 
@@ -20,15 +22,7 @@ class BodyBuilder extends WireData implements Module
 
     const fieldTag = "body-builder";
 
-    static $moduleFields = array(
-        "process_body_builder_code",
-        "process_body_builder_type",
-        "process_body_builder"
-    );
-    static $moduleTemplates = array(
-        "process_body_builder",
-        "repeater_process_body_builder"
-    );
+
     public static function getModuleInfo()
     {
         return array(
@@ -55,7 +49,6 @@ class BodyBuilder extends WireData implements Module
             $p->process = $this;
             $p->title = 'Body Builder Templates';
             $p->save();
-
 
 
             $typeField = new Field();
@@ -107,74 +100,11 @@ class BodyBuilder extends WireData implements Module
                 $template->childTemplates(array(self::codeTemplate));
                 $template->save();
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->uninstall();
             $this->install();
             throw $e;
         }
-    }
-
-    public function ___uninstall()
-    {
-        $field = $this->fields->get(self::typeField);
-        if($field) {
-            $field->flags = Field::flagSystemOverride;
-            $field->flags = 0;
-            $fieldgroup = $this->templates->get('repeater_'.self::repeaterName)->fieldgroup;
-            if($fieldgroup) {
-                $fieldgroup->remove($field);
-                $fieldgroup->save();
-                $this->message("Removed type field from repeater template");
-            }
-            $this->fields->delete($field);
-            $this->message("Removing field: $field");
-        }
-
-        $field = $this->fields->get(self::repeaterName);
-        if($field) {
-            $field->flags = Field::flagSystemOverride;
-            $field->flags = 0;
-            $this->fields->delete($field);
-            $this->message("Removing field: $field");
-        }
-
-        $field = $this->fields->get(self::codeField);
-        if($field) {
-            $field->flags = Field::flagSystemOverride;
-            $field->flags = 0;
-            $fieldgroup = $this->templates->get(self::codeTemplate)->fieldgroup;
-
-            if($fieldgroup) {
-                $fieldgroup->remove($field);
-                $fieldgroup->save();
-                $this->message("Removed code field from code Template");
-            }
-            $this->fields->delete($field);
-            $this->message("Removing field: $field");
-        }
-
-        $pages = $this->pages->find('include=all,name='.self::moduleName);
-        foreach($pages as $page){
-            $this->message("Removing template page and its children: {$page->path}");
-            $this->pages->delete($page, true);
-        }
-
-        $template = $this->templates->get(self::codeTemplate);
-        if($template){
-            $template->flags = Template::flagSystemOverride;
-            $template->flags = 0;
-
-            $this->message("Removing template: {$template->name}");
-            $this->templates->delete($template);
-        }
-
-        $fieldgroup = $this->fieldgroups->get(self::codeTemplate);
-        if($fieldgroup){
-            $this->message("Removing fieldgroup: {$fieldgroup}");
-            $this->fieldgroups->delete($fieldgroup);
-        }
-
-
     }
 
     private function _createRepeater($repeaterName, $repeaterFields, $repeaterLabel, $repeaterTags)
@@ -225,5 +155,68 @@ class BodyBuilder extends WireData implements Module
         $f->save();
 
         return $f;
+    }
+
+    public function ___uninstall()
+    {
+        $field = $this->fields->get(self::typeField);
+        if ($field) {
+            $field->flags = Field::flagSystemOverride;
+            $field->flags = 0;
+            $fieldgroup = $this->templates->get('repeater_' . self::repeaterName)->fieldgroup;
+            if ($fieldgroup) {
+                $fieldgroup->remove($field);
+                $fieldgroup->save();
+                $this->message("Removed type field from repeater template");
+            }
+            $this->fields->delete($field);
+            $this->message("Removing field: $field");
+        }
+
+        $field = $this->fields->get(self::repeaterName);
+        if ($field) {
+            $field->flags = Field::flagSystemOverride;
+            $field->flags = 0;
+            $this->fields->delete($field);
+            $this->message("Removing field: $field");
+        }
+
+        $field = $this->fields->get(self::codeField);
+        if ($field) {
+            $field->flags = Field::flagSystemOverride;
+            $field->flags = 0;
+            $fieldgroup = $this->templates->get(self::codeTemplate)->fieldgroup;
+
+            if ($fieldgroup) {
+                $fieldgroup->remove($field);
+                $fieldgroup->save();
+                $this->message("Removed code field from code Template");
+            }
+            $this->fields->delete($field);
+            $this->message("Removing field: $field");
+        }
+
+        $pages = $this->pages->find('include=all,name=' . self::moduleName);
+        foreach ($pages as $page) {
+            $this->message("Removing template page and its children: {$page->path}");
+            $this->pages->delete($page, true);
+        }
+
+        $template = $this->templates->get(self::codeTemplate);
+        if ($template) {
+            $template->flags = Template::flagSystemOverride;
+            $template->flags = 0;
+
+            $this->message("Removing template: {$template->name}");
+            $this->templates->delete($template);
+        }
+
+        $fieldgroup = $this->fieldgroups->get(self::codeTemplate);
+        if ($fieldgroup) {
+            $this->message("Removing fieldgroup: {$fieldgroup}");
+            $this->fieldgroups->delete($fieldgroup);
+        }
+
+
     }
 }
