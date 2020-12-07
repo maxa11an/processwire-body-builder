@@ -39,6 +39,8 @@ class MarkupBodyBuilder extends Process implements Module
         $this->addHookAfter("Fields::save", $this, 'hookWhenFieldSaved');
         $this->addHookAfter("Field::getInputfield", $this, 'hookHideTitle');
         $this->addHookAfter('Page::renderField', $this, 'hookRenderField');
+        $this->addHookAfter('FieldtypeRepeater::getConfigInputfields', $this, 'hookAsmGetConfigInputfields');
+        $this->addHookAfter('InputfieldAsmSelect::render', $this, 'hookAsmRender');
 
         $this->twig = new Environment(new ArrayLoader(), [
             'autoescape' => false,
@@ -46,6 +48,90 @@ class MarkupBodyBuilder extends Process implements Module
         ]);
         $this->twig->addExtension(new DebugExtension());
         return parent::init();
+    }
+
+    public function hookAsmRender(HookEvent $event){
+
+        $value = $event->return;
+        if(strpos($value, 'enableNonDeletableOptions') !== false){
+
+            $jsfile = $this->wire('config')->debug ? 'jquery.asmselect.js' : 'jquery.asmselect.min.js';
+            $jsfile = 'jquery.asmselect.js';
+
+            /** @var InputfieldAsmSelect $InputFieldAsm */
+            $InputfieldAsmSelect = $this->wire('modules')->get('InputfieldAsmSelect');
+            $info = $InputfieldAsmSelect::getModuleInfo();
+            $ver = $info['version'];
+
+            $this->config->scripts->remove($this->config->urls->$InputfieldAsmSelect . "asmselect/$jsfile?v=$ver");
+
+            $BodyBuilder = $this->wire('modules')->get('BodyBuilder');
+            $info = $BodyBuilder::getModuleInfo();
+            $ver = $info['version'];
+
+            $this->config->scripts->add($this->config->urls->$BodyBuilder."asmselect/$jsfile?v=$ver");
+            $this->config->styles->add($this->config->urls->$BodyBuilder . "asmselect/jquery.asmselect.css?v=$ver");
+
+        }
+    }
+
+    public function hookAsmGetConfigInputfields(HookEvent $event)
+    {
+        /** @var RepeaterField $object */
+        $object = $event->arguments(0);
+        /** @var Template $template */
+        $template = $object->type->getRepeaterTemplate($object);
+
+        /** @var InputfieldWrapper $inputfields */
+        $inputfields = $event->return;
+        if($object->name !== BodyBuilder::repeaterName) return;
+        foreach($inputfields as $inputfield){
+            if($inputfield instanceof InputfieldAsmSelect){
+
+                $inputfield->setOptions([]);
+                $inputfield->setAsmSelectOption('enableNonDeletableOptions',true);
+
+                foreach($template->fieldgroup as $f) {
+                    /** @var Field $f */
+
+
+
+                    $f = $template->fieldgroup->getField($f->id, true); // get in context
+                    $columnWidth = (int) $f->get('columnWidth');
+
+                    $attrs = array(
+                        'selected' => 'selected',
+                        'data-status' => str_replace('Fieldtype', '', $f->type) . ' ' . ($columnWidth > 0 ? $columnWidth . '%': '100%'),
+                        'data-desc' => $f->getLabel(),
+                    );
+                    if($f->name == BodyBuilder::typeField) $attrs['data-NotDeletable'] = "true";
+
+                    $icon = $f->getIcon();
+                    if($icon) $attrs['data-handle'] = "<i class='fa fa-fw fa-$icon'></i>";
+                    $inputfield->addOption($f->id, $f->name, $attrs);
+                }
+
+                foreach($this->wire('fields') as $f) {
+                    if($template->fieldgroup->has($f)) continue;
+                    if($f->name == BodyBuilder::repeaterName) continue;
+                    if($f->name == BodyBuilder::codeField) continue;
+
+                    if($f->flags & Field::flagSystem) continue;
+                    if(($f->flags & Field::flagPermanent) && !$this->wire('config')->advanced) continue;
+                    $name = $f->name;
+                    $columnWidth = (int) $f->get('columnWidth');
+                    $attrs = array(
+                        'data-desc' => $f->getLabel(),
+                        'data-status' => str_replace('Fieldtype', '', $f->type) . ' ' . ($columnWidth > 0 ? $columnWidth . '%': '100%'),
+                    );
+
+                    $icon = $f->getIcon();
+                    if($icon) $attrs['data-handle'] = "<i class='fa fa-fw fa-$icon'></i>";
+                    $inputfield->addOption($f->id, $name, $attrs);
+                }
+            }
+        }
+        $event->return = $inputfields;
     }
 
     public function hookRenderField(HookEvent $event)

@@ -1,0 +1,20 @@
+.asmListItemLocked {
+    /* the remove link in each list item */
+    position: absolute;
+    right: 3px;
+    top: 0;
+    line-height: 1.3em;
+    cursor: not-allowed;
+}
+
+.asmIconLocked {
+    /* asmIconRemove used only for UTF-8 remove icon */
+    font-size: 1.6em;
+    padding-right: 2px;
+    padding-top: 3px;
+    font-family: Arial, sans-serif;
+    display: inline-block;
+}
+.asmIconLocked .fa-lock{
+    font-size: 19px;
+}
