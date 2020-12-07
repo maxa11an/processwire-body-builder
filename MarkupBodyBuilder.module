@@ -8,8 +8,7 @@ use Twig\Error\SyntaxError;
 use Twig\Extension\DebugExtension;
 use Twig\Loader\ArrayLoader;
 
-include_once __DIR__ . "/vendor/autoload.php";
-include_once __DIR__ . "/BodyBuilder.module";
+
 
 class MarkupBodyBuilder extends Wire implements Module
 {
@@ -31,7 +30,9 @@ class MarkupBodyBuilder extends Wire implements Module
 
     public function init()
     {
-
+        include_once __DIR__ . "/vendor/autoload.php";
+        include_once __DIR__ . "/BodyBuilder.module";
+        
         $this->addHookAfter("Fields::save", $this, 'hookWhenFieldSaved');
         $this->addHookAfter("Field::getInputfield", $this, 'hookHideTitle');
         $this->addHookAfter('Page::renderField', $this, 'hookRenderField');
